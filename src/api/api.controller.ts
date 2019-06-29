@@ -17,4 +17,17 @@ export class ApiController {
             return res.status(HttpStatus.OK).json(data);   
         })
     }
+
+    @Get('/dynamic-data')
+    getDynamicData(@Res() res) {
+        fs.readFile(join(__dirname, "..", "..", "assets", "files", "dynamic", "dynamic_data.json"), "utf-8", (error, rawData) => {
+            if (error) {
+                console.log(error);
+                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({message: 'Not found'});
+            }
+
+            const data = JSON.parse(rawData);
+            return res.status(HttpStatus.OK).json(data);   
+        })
+    }
 }
