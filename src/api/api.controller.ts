@@ -1,6 +1,17 @@
-import { Controller, Get, Res, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Res, HttpStatus, Post, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
 import * as fs from 'fs';
 import { join } from 'path';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from  'multer';
+
+const options = {
+    storage: diskStorage({
+        destination: 'assets/files/dynamic/',
+        filename: function(req, file, cb) {
+            cb(null, 'dynamic_data.json')
+        }
+    })
+};
 
 @Controller('api')
 export class ApiController {
@@ -29,5 +40,11 @@ export class ApiController {
             const data = JSON.parse(rawData);
             return res.status(HttpStatus.OK).json(data);   
         })
+    }
+
+    @Post('/dynamic-data')
+    @UseInterceptors(FileInterceptor('file', options))
+    uploadJSONData(@UploadedFile() file) {
+        console.log(file);
     }
 }
