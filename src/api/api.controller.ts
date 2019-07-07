@@ -4,6 +4,8 @@ import { join } from 'path';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from  'multer';
 
+const MAX_FILES_COUNT = 12;
+
 const singleFileUploadOptions = {
     storage: diskStorage({
         destination: 'assets/files/dynamic/',
@@ -60,7 +62,7 @@ export class ApiController {
     }
 
     @Post('/upload')
-    @UseInterceptors(FilesInterceptor('files', 3, multipleFilesUploadOptions))
+    @UseInterceptors(FilesInterceptor('files', MAX_FILES_COUNT, multipleFilesUploadOptions))
     uploadMultipleFiles(@UploadedFiles() files, @Res() res) {
         console.log(files);
         return res.status(HttpStatus.OK).json({message: 'Files has been uploaded'});
