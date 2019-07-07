@@ -2,6 +2,9 @@
 /dist
 /node_modules
 /frontend
+/assets/files/static/
+/assets/files/dynamic/
+/assets/files/multiple/
 
 # Logs
 logs

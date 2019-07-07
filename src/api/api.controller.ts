@@ -3,8 +3,10 @@ import * as fs from 'fs';
 import { join } from 'path';
 import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from  'multer';
+import { connectableObservableDescriptor } from 'rxjs/internal/observable/ConnectableObservable';
 
 const MAX_FILES_COUNT = 12;
+const MAX_TOTAL_SPACE = 100;
 
 const singleFileUploadOptions = {
     storage: diskStorage({
@@ -19,11 +21,76 @@ const multipleFilesUploadOptions = {
     storage: diskStorage({
         destination: 'assets/files/multiple/',
         filename: function(req, file, cb) {
-            console.log(file);
             cb(null, file.originalname);
+        },
+    }),
+    fileFilter: async function(req, file, cb) {
+        const pathToDir = join(__dirname, "..", "..", "assets", "files", "multiple");
+        try {
+            const files = await getFilesInDir(pathToDir);
+            const fileSizes = await getFileSizes(files, pathToDir);
+            const checkResult = checkSpaceLimit(fileSizes);
+            if (checkResult)
+                return cb(null, true);
+            else
+                return cb(new Error('Error on upload'));
+        } catch(error) {
+            return cb(new Error('Error on upload'));
         }
-    })
+
+    }
 };
+
+function getFilesInDir(pathToDir: string): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+        fs.readdir(pathToDir, function(error, files) {
+            if (error) {
+                console.log(error);
+                reject(error);
+            } else {
+                resolve(files);
+            }
+        })
+    })
+}
+
+function getFileSizes(fileNames: string[], pathToDir: string): Promise<number[]> {
+    return new Promise((resolve, reject) => {
+        const fileSizes = [];
+        fileNames.forEach(item => {
+            fileSizes.push(getFileSize(item, pathToDir));
+        });
+        Promise.all(fileSizes).then(res => {
+            resolve(res);
+        })
+        .catch(error => {
+            reject(error);
+        })
+    })
+}
+
+function getFileSize(filename: string, pathToDir: string): Promise<number> {
+    return new Promise((resolve, reject) => {
+        const pathToFile = `${pathToDir}/${filename}`;
+        fs.lstat(pathToFile, function(error, stats) {
+            if (error) {
+                console.log(error);
+                reject(error);
+            } else {
+                resolve(stats.size);
+            }
+        })
+    })
+}
+
+function checkSpaceLimit(fileSizes: number[]): boolean {
+    const total = fileSizes.reduce((current, next) => {
+        current += next;
+        return current;
+    }, 0)
+    console.log('total size is ', total);
+    return (total / 1000000) < MAX_TOTAL_SPACE ? true : false;
+}
 
 @Controller('api')
 export class ApiController {
