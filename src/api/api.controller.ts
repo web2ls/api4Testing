@@ -1,14 +1,24 @@
-import { Controller, Get, Res, HttpStatus, Post, Req, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Res, HttpStatus, Post, Req, UseInterceptors, UploadedFile, UploadedFiles } from '@nestjs/common';
 import * as fs from 'fs';
 import { join } from 'path';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FilesInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from  'multer';
 
-const options = {
+const singleFileUploadOptions = {
     storage: diskStorage({
         destination: 'assets/files/dynamic/',
         filename: function(req, file, cb) {
             cb(null, 'dynamic_data.json')
+        }
+    })
+};
+
+const multipleFilesUploadOptions = {
+    storage: diskStorage({
+        destination: 'assets/files/multiple/',
+        filename: function(req, file, cb) {
+            console.log(file);
+            cb(null, file.originalname);
         }
     })
 };
@@ -43,8 +53,16 @@ export class ApiController {
     }
 
     @Post('/dynamic-data')
-    @UseInterceptors(FileInterceptor('file', options))
-    uploadJSONData(@UploadedFile() file) {
+    @UseInterceptors(FileInterceptor('file', singleFileUploadOptions))
+    uploadJSONData(@UploadedFile() file, @Res() res) {
         console.log(file);
+        return res.status(HttpStatus.OK).json({message: 'File has been uploaded'});
+    }
+
+    @Post('/upload')
+    @UseInterceptors(FilesInterceptor('files', 3, multipleFilesUploadOptions))
+    uploadMultipleFiles(@UploadedFiles() files, @Res() res) {
+        console.log(files);
+        return res.status(HttpStatus.OK).json({message: 'Files has been uploaded'});
     }
 }
